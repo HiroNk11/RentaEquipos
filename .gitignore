@@ -24,3 +24,9 @@ test-results/
 *.ldf
 *.pfx
 *.p12
+
+# Private configuration and generated files
+!.env.*.example
+*.pem
+*.key
+*.suo

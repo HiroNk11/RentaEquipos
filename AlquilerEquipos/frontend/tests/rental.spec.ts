@@ -114,8 +114,10 @@ test("retiro y devolución con mantenimiento", async ({ page }) => {
   await dialog.getByRole("button", { name: "Registrar devolución" }).click();
   await page.getByRole("link", { name: "Equipos", exact: true }).click();
   await page.getByRole("searchbox").fill("EQ-TAL-001");
+  const equipo = page.locator(".equipment-card").filter({ hasText: "EQ-TAL-001" });
+  await expect(page.locator(".equipment-card")).toHaveCount(1);
   await expect(
-    page.locator(".equipment-card").getByText("Mantenimiento", { exact: true }),
+    equipo.getByText("Mantenimiento", { exact: true }),
   ).toBeVisible();
 });
 test("accesibilidad del resumen y formulario", async ({ page }) => {
