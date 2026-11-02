@@ -1,0 +1,44 @@
+name: Frontend validation
+
+on:
+  push:
+    branches: [main]
+    paths: ["AlquilerEquipos/frontend/**", ".github/workflows/frontend.yml"]
+  pull_request:
+    paths: ["AlquilerEquipos/frontend/**", ".github/workflows/frontend.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: AlquilerEquipos/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: AlquilerEquipos/frontend/package-lock.json
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:unit
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: frontend-browser-report
+          path: AlquilerEquipos/frontend/playwright-report/
+          retention-days: 7

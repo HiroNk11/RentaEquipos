@@ -1,0 +1,20 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /AlquilerEquipos/backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /AlquilerEquipos/backend/AlquilerEquipos.API
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "mcr.microsoft.com/dotnet/*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    open-pull-requests-limit: 5

@@ -8,3 +8,19 @@ obj/
 node_modules/
 dist/
 .env
+.env.*
+!.env.example
+*.log
+TestResults/
+artifacts/
+__pycache__/
+*.pyc
+playwright-report/
+test-results/
+
+# Bases, respaldos y certificados privados
+*.bak
+*.mdf
+*.ldf
+*.pfx
+*.p12

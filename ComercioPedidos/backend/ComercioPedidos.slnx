@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="ComercioPedidos.API/ComercioPedidos.API.csproj" />
-  <Project Path="ComercioPedidos.Application/ComercioPedidos.Application.csproj" />
-  <Project Path="ComercioPedidos.Infrastructure/ComercioPedidos.Infrastructure.csproj" />
-</Solution>

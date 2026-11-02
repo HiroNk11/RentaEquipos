@@ -1,253 +1,107 @@
-# ComercioPedidos | Gestión de Indumentaria
+# RentaEquipos
 
-![C#](https://img.shields.io/badge/C%23-512BD4?style=flat-square)
-![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-10-512BD4?style=flat-square)
-![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react)
-![React Native](https://img.shields.io/badge/React_Native-20232A?style=flat-square&logo=react)
-![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?style=flat-square)
+Sistema de alquiler de herramientas y equipos. El backend se organiza en la solucion **AlquilerEquipos**, con C#, ASP.NET Core 10, Entity Framework Core 10 y SQL Server.
 
-## Descripción
+## Estado del proyecto
 
-ComercioPedidos es un sistema de gestión de retail para un emprendimiento de indumentaria. Centraliza la administración de productos, clientes, pedidos y movimientos de stock para facilitar el seguimiento de la operación comercial.
+El backend permite gestionar equipos y clientes, reservar un equipo por periodo, registrar su retiro y completar la devolucion. El frontend React ya esta adaptado al dominio de alquileres, con inventario, disponibilidad, reservas y clientes. React Native sigue siendo el cliente heredado de ComercioPedidos y no forma parte de esta adaptacion.
 
-La solución integra una aplicación web desarrollada en React y una aplicación móvil construida con React Native y Expo. Ambas consumen la misma API REST en ASP.NET Core, que concentra las reglas de negocio y el acceso a los datos mediante Entity Framework Core y SQL Server.
+## Uso local con Windows
 
-## Recorrido de uso
+Hay una modalidad local con cuenta Windows, SQL Server Express y frontend compilado servido por la misma API. No requiere Vite ni OIDC para el uso personal en esta PC. No habilita acceso anonimo ni se publica en Internet.
 
-Con la API y el cliente iniciados:
+```powershell
+./scripts/Iniciar-Local.ps1 -OpenBrowser
+./scripts/Estado-Local.ps1
+```
 
-1. Registrar un producto y un cliente.
-2. Crear un pedido y consultar su detalle.
-3. Confirmar el pedido y revisar su estado.
-4. Consultar el stock y sus movimientos desde las pantallas de gestión.
-5. Consultar la información desde el otro cliente, conectado a la misma API.
+Direccion predeterminada: **http://localhost:5280**. Inicio manual, sin tareas automaticas. Tambien estan disponibles `Abrir-RentaEquipos.cmd` y `Detener-RentaEquipos.cmd`.
 
-## Arquitectura y Tecnologías
+Consultar [Uso local, respaldos y actualizaciones](USO-LOCAL.md) antes de operar con datos propios.
+
+## Funcionalidades
+
+- CRUD de equipos con numero de serie unico.
+- CRUD de clientes; no se elimina un cliente con historial de reservas.
+- Disponibilidad por fechas, excluyendo mantenimiento y reservas pendientes o activas que se solapen.
+- Alta transaccional de reservas con bloqueo por equipo para controlar solicitudes concurrentes.
+- Cancelacion de reservas pendientes, retiro y devolucion.
+- Devolucion a estado Disponible o Mantenimiento.
+- Autenticacion JWT y permisos para Administrador, Operador y Consulta.
+- Listados paginados, filtros de reservas, errores Problem Details y logs JSON.
+- Sondas de vida y disponibilidad de base de datos.
+- Migraciones versionadas, dependencias bloqueadas y workflow de validacion.
+
+El costo total es un importe pactado ingresado por un operador. No se implementan tarifacion automatica, cobros ni penalizaciones por demora.
+
+## Desarrollo de la API
+
+Requisitos: SDK .NET 10.0.403 o posterior de .NET 10, runtime 10.0.14 o posterior, SQL Server o LocalDB y Python 3.10+ para las comprobaciones HTTP. global.json selecciona el SDK estable de .NET 10.
+
+Desde la raiz del repositorio, con datos ficticios:
+
+```powershell
+dotnet restore AlquilerEquipos/backend/AlquilerEquipos.sln --locked-mode
+dotnet tool restore
+$env:ConnectionStrings__AlquilerEquipos = "Server=(localdb)\MSSQLLocalDB;Database=AlquilerEquiposDB;Integrated Security=True;TrustServerCertificate=True;"
+dotnet ef database update --context AlquilerEquiposDbContext --project AlquilerEquipos/backend/AlquilerEquipos.Infrastructure --startup-project AlquilerEquipos/backend/AlquilerEquipos.API
+$env:Authentication__AllowAnonymousDevelopment = "true"
+dotnet run --project AlquilerEquipos/backend/AlquilerEquipos.API --launch-profile http
+```
+
+Swagger: http://localhost:5272/swagger
+
+El modo anonimo es una opcion explicita de Development. La API escucha en loopback por defecto; no usar ese modo con datos reales ni exponerlo a una red publica. Para trabajar con JWT, seguir la [guia de seguridad](SECURITY.md).
+
+Las migraciones estan destinadas a **AlquilerEquiposDB**, no a la base de ComercioPedidos.
+
+## Recorrido funcional
+
+1. Crear un cliente en POST /api/clientes.
+2. Crear un equipo en POST /api/equipos.
+3. Consultar GET /api/equipos/disponibles con fechaInicio y fechaFin.
+4. Crear una reserva en POST /api/reservas.
+5. Dentro del periodo reservado, usar PATCH /api/reservas/{id}/activar para retirar el equipo.
+6. Registrar la devolucion con PATCH /api/reservas/{id}/devolver.
+
+Los periodos son semiabiertos: una reserva puede empezar cuando termina otra. La consulta de disponibilidad es informativa; el POST vuelve a comprobar conflictos antes de guardar.
+
+## Validar
+
+```powershell
+./scripts/Validar-Backend.ps1
+```
+
+El script restaura con versiones bloqueadas y auditoria NuGet, compila, verifica reglas y ejecuta comprobaciones HTTP. La integracion SQL se solicita por separado con -Sql y ALQUILER_SQL_TEST_CONNECTION en una instancia exclusiva de pruebas.
+
+Consultar [PRUEBAS.md](AlquilerEquipos/backend/PRUEBAS.md) para distinguir las verificaciones sin base de las pruebas de persistencia y concurrencia.
+
+## Estructura
 
 ```text
-React · Web ───────────────┐
-                          ├── HTTP / JSON ── ASP.NET Core API
-React Native · Mobile ────┘                         │
-                                          Entity Framework Core
-                                                   │
-                                               SQL Server
+AlquilerEquipos/backend/
+  AlquilerEquipos.API/              Controllers, seguridad y composicion
+  AlquilerEquipos.Application/      Entidades, DTOs, reglas y contratos
+  AlquilerEquipos.Infrastructure/   EF Core, SQL Server y servicios
+  tests/                           Reglas, HTTP e integracion SQL
+AlquilerEquipos/frontend/           React y TypeScript para alquileres
+comercio-pedidos-mobile/            React Native heredado
+scripts/                           Validacion y generacion de SQL
+.github/workflows/                 Validacion del backend
 ```
 
-| Componente | Tecnologías | Responsabilidad |
-| --- | --- | --- |
-| API | C#, .NET 10 y ASP.NET Core | Exponer endpoints y coordinar las solicitudes. |
-| Aplicación | DTOs, entidades e interfaces de servicios | Definir contratos y conceptos del negocio. |
-| Infraestructura | Entity Framework Core | Implementar servicios y acceso a datos. |
-| Base de datos | SQL Server | Persistir la información comercial. |
-| Frontend web | React 19, TypeScript, Vite, React Router y Axios | Proporcionar la interfaz de gestión web. |
-| Frontend móvil | React Native, TypeScript, Expo y Expo Router | Permitir la gestión desde dispositivos móviles. |
-| Documentación API | Swagger / OpenAPI | Explorar los endpoints en desarrollo. |
+## Documentacion
 
-El backend utiliza inyección de dependencias, manejo global de excepciones con Problem Details y una política CORS para la integración con el frontend web.
+- [Endpoints y configuracion del backend](AlquilerEquipos/backend/README.md)
+- [Frontend: ejecucion, demostracion y autenticacion](AlquilerEquipos/frontend/README.md)
+- [Seguridad y permisos](SECURITY.md)
+- [Pruebas](AlquilerEquipos/backend/PRUEBAS.md)
+- [Resultados de verificacion local](AlquilerEquipos/backend/VERIFICACION.md)
+- [Infraestructura y operacion](AlquilerEquipos/backend/INFRAESTRUCTURA.md)
+- [Uso local con Windows](USO-LOCAL.md)
+- [Resultados de la instalacion local](VERIFICACION-LOCAL.md)
+- [Actualizacion a .NET 10](MIGRACION-NET10.md)
 
-## Características Principales
-
-- Gestión de productos: alta, consulta, modificación y eliminación.
-- Gestión de clientes: administración de la información de los compradores.
-- Creación de pedidos: registro de operaciones comerciales.
-- Seguimiento de pedidos: confirmación, cancelación y entrega.
-- Filtros de pedidos: búsqueda por estado, cliente y rango de fechas.
-- Paginación: consulta de pedidos en grupos de resultados.
-- Control de stock: consulta y registro de movimientos.
-- Acceso web y móvil: integración de ambos clientes con una API compartida.
-- Documentación interactiva: exploración de endpoints mediante Swagger en desarrollo.
-
-## Prerrequisitos
-
-- Git.
-- .NET SDK 10, según el framework declarado en el backend.
-- Node.js y npm compatibles con las dependencias de cada package.json.
-- SQL Server, con permisos para crear o actualizar la base de datos.
-- Entity Framework Core CLI (dotnet-ef) 10.x, compatible con los paquetes del proyecto.
-- Un dispositivo o emulador compatible con la versión de Expo utilizada.
-- Android Studio, para utilizar un emulador Android.
-- macOS y Xcode, para utilizar el simulador iOS.
-- Opcional: Visual Studio, Visual Studio Code o Rider.
-
-## Instalación y Ejecución
-
-### 1. Clonar el repositorio
-
-```powershell
-git clone https://github.com/HiroNk11/Proyecto-BackEnd-BaseDeDatos-FrontEnd.git
-cd Proyecto-BackEnd-BaseDeDatos-FrontEnd
-```
-
-Los comandos del backend se ejecutan desde la raíz del repositorio.
-
-### 2. Restaurar las dependencias del backend
-
-```powershell
-dotnet restore ComercioPedidos/backend/ComercioPedidos.API/ComercioPedidos.API.csproj
-```
-
-### 3. Configurar la conexión a SQL Server
-
-La API utiliza la clave ConnectionStrings:ComercioPedidos.
-
-Para configurar la conexión de desarrollo mediante User Secrets:
-
-```powershell
-dotnet user-secrets init --project ComercioPedidos/backend/ComercioPedidos.API
-dotnet user-secrets set "ConnectionStrings:ComercioPedidos" "Server=localhost;Database=ComercioPedidos;Trusted_Connection=True;TrustServerCertificate=True;" --project ComercioPedidos/backend/ComercioPedidos.API
-```
-
-La conexión del ejemplo utiliza autenticación integrada de Windows. Ajustá el servidor y el mecanismo de autenticación según tu instalación.
-
-Las credenciales de base de datos deben mantenerse fuera del control de versiones.
-
-### 4. Aplicar las migraciones
-
-Si todavía no tenés instalada la herramienta de Entity Framework Core:
-
-```powershell
-dotnet tool install --global dotnet-ef --version "10.*"
-```
-
-Si ya está instalada, verificá su versión:
-
-```powershell
-dotnet ef --version
-```
-
-Aplicá las migraciones indicando el proyecto de infraestructura y el proyecto de inicio:
-
-```powershell
-dotnet ef database update --project ComercioPedidos/backend/ComercioPedidos.Infrastructure --startup-project ComercioPedidos/backend/ComercioPedidos.API
-```
-
-### 5. Iniciar la API
-
-Configurá el certificado HTTPS de desarrollo:
-
-```powershell
-dotnet dev-certs https --trust
-```
-
-Iniciá el backend:
-
-```powershell
-dotnet run --project ComercioPedidos/backend/ComercioPedidos.API -- --environment Development
-```
-
-La terminal mostrará las direcciones disponibles. En desarrollo, podés acceder a Swagger agregando /swagger a la URL de la API.
-
-### 6. Iniciar el frontend web
-
-En otra terminal, desde la raíz del repositorio:
-
-```powershell
-cd ComercioPedidos/frontend
-npm install
-npm run dev
-```
-
-El backend tiene configurado CORS para:
-http://localhost:5173
-Las direcciones utilizadas para consumir la API se encuentran en:
-ComercioPedidos/frontend/src/services/
-Verificá que coincidan con las direcciones del backend. Por ejemplo, el servicio de productos utiliza:
-https://localhost:7072/api/Productos
-Para generar la compilación del frontend:
-
-```powershell
-npm run build
-```
-
-### 7. Iniciar la aplicación móvil
-
-En otra terminal, desde la raíz del repositorio:
-
-```powershell
-cd comercio-pedidos-mobile
-npm install
-npm start
-```
-
-También podés iniciar Expo para una plataforma específica:
-
-```powershell
-npm run android
-```
-
-Para iOS, desde macOS con el entorno correspondiente:
-
-```powershell
-npm run ios
-```
-
-La URL del backend móvil se configura en:
-comercio-pedidos-mobile/src/config/api.ts
-Ejemplo de configuración para un dispositivo conectado a la misma red:
-
-```typescript
-export const API_URL = "http://192.168.1.10:5272/api";
-```
-
-Reemplazá la IP por la dirección local de tu computadora y verificá el puerto del backend.
-
-Para permitir conexiones desde la red local, iniciá la API desde la raíz del repositorio:
-
-```powershell
-dotnet run --project ComercioPedidos/backend/ComercioPedidos.API -- --environment Development --urls http://0.0.0.0:5272
-```
-
-En un dispositivo físico, localhost apunta al propio dispositivo. Utilizá la IP de tu computadora y asegurate de que el puerto sea accesible. En el emulador estándar de Android, 10.0.2.2 permite acceder al equipo anfitrión.
-
-## Estructura del Proyecto
-
-```text
-Proyecto-BackEnd-BaseDeDatos-FrontEnd/
-├── ComercioPedidos/
-│   ├── backend/
-│   │   ├── ComercioPedidos.API/
-│   │   │   ├── Controllers/
-│   │   │   ├── Exceptions/
-│   │   │   ├── Properties/
-│   │   │   ├── Program.cs
-│   │   │   └── appsettings.json
-│   │   │
-│   │   ├── ComercioPedidos.Application/
-│   │   │   ├── DTO/
-│   │   │   ├── Entitites/
-│   │   │   ├── Enum/
-│   │   │   ├── Exceptions/
-│   │   │   └── Services/
-│   │   │
-│   │   ├── ComercioPedidos.Infrastructure/
-│   │   │   ├── Data/
-│   │   │   ├── Migrations/
-│   │   │   └── Services/
-│   │   │
-│   │   └── ComercioPedidos.slnx
-│   │
-│   └── frontend/
-│       ├── public/
-│       ├── src/
-│       │   ├── components/
-│       │   ├── models/
-│       │   ├── pages/
-│       │   ├── services/
-│       │   └── styles/
-│       └── package.json
-│
-├── comercio-pedidos-mobile/
-│   ├── assets/
-│   ├── src/
-│   │   ├── app/
-│   │   ├── components/
-│   │   ├── config/
-│   │   ├── models/
-│   │   └── services/
-│   ├── app.json
-│   └── package.json
-│
-└── README.md
-```
+No se aplican migraciones automaticamente al iniciar la API. Un workflow configurado o una imagen Docker definida no equivalen a un despliegue validado.
 
 

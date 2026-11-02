@@ -1,0 +1,6 @@
+@AlquilerEquipos.API_HostAddress = http://localhost:5272
+
+GET {{AlquilerEquipos.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

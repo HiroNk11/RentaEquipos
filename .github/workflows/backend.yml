@@ -1,0 +1,71 @@
+name: Backend validation
+
+on:
+  push:
+    branches: [main]
+    paths: ["AlquilerEquipos/backend/**", "scripts/**", ".github/workflows/backend.yml", "global.json", ".config/dotnet-tools.json"]
+  pull_request:
+    paths: ["AlquilerEquipos/backend/**", "scripts/**", ".github/workflows/backend.yml", "global.json", ".config/dotnet-tools.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-http:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.403"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Restore and build
+        run: |
+          dotnet restore AlquilerEquipos/backend/AlquilerEquipos.sln --locked-mode -p:NuGetAudit=true -p:NuGetAuditMode=all
+          dotnet build AlquilerEquipos/backend/AlquilerEquipos.sln -c Release --no-restore --warnaserror
+      - name: Parse operation scripts
+        shell: pwsh
+        run: |
+          $errors = @()
+          Get-ChildItem scripts,AlquilerEquipos/backend/tests -Filter '*.ps1' -Recurse | ForEach-Object {
+            $tokens = $null
+            $parse = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$parse) | Out-Null
+            if ($parse) { $errors += $parse }
+          }
+          if ($errors.Count) { $errors | Format-List; exit 1 }
+      - name: Business rules and SQL translation
+        run: dotnet run --project AlquilerEquipos/backend/tests/ReservasChecks -c Release
+      - name: HTTP authentication and infrastructure
+        run: python AlquilerEquipos/backend/tests/security_http.py --configuration Release
+      - name: Build non-root API image
+        run: docker build -f AlquilerEquipos/backend/AlquilerEquipos.API/Dockerfile -t alquiler-equipos:ci .
+
+  sql-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.403"
+      - name: Start isolated SQL Server
+        shell: bash
+        run: |
+          password="Aa1!$(openssl rand -hex 24)"
+          echo "::add-mask::$password"
+          echo "ALQUILER_SQL_TEST_CONNECTION=Server=127.0.0.1,1433;User Id=sa;Password=$password;Encrypt=True;TrustServerCertificate=True" >> "$GITHUB_ENV"
+          docker run -d --name alquiler-sql --memory=3g -e MSSQL_MEMORY_LIMIT_MB=2048 -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD="$password" -p 127.0.0.1:1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+      - name: Run SQL migration, lifecycle and concurrency checks
+        run: dotnet run --project AlquilerEquipos/backend/tests/SqlIntegration -c Release
+      - name: Remove SQL container
+        if: always()
+        run: docker rm -f alquiler-sql || true

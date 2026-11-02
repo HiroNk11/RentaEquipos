@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>AlquilerEquipos.API.local-development</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AlquilerEquipos.Application\AlquilerEquipos.Application.csproj" />
+    <ProjectReference Include="..\AlquilerEquipos.Infrastructure\AlquilerEquipos.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

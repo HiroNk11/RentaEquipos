@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <AnalysisLevel>10.0</AnalysisLevel>
+    <RuntimeFrameworkVersion>10.0.14</RuntimeFrameworkVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <Deterministic>true</Deterministic>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+</Project>
