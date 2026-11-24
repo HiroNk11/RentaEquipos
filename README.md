@@ -2,6 +2,13 @@
 
 Sistema de alquiler de herramientas y equipos. El backend se organiza en la solucion **AlquilerEquipos**, con C#, ASP.NET Core 10, Entity Framework Core 10 y SQL Server.
 
+## Demo interactiva
+
+[Probar RentaEquipos](https://nicolas-giron-rentaequipos-demo.nicogiron09.chatgpt.site/)
+
+Explorá equipos, disponibilidad, reservas, retiros y devoluciones.
+Utiliza datos ficticios y permite restablecer los datos iniciales.
+
 ## Estado del proyecto
 
 El backend permite gestionar equipos y clientes, reservar un equipo por periodo, registrar su retiro y completar la devolucion. El frontend React ya esta adaptado al dominio de alquileres, con inventario, disponibilidad, reservas y clientes. React Native sigue siendo el cliente heredado de ComercioPedidos y no forma parte de esta adaptacion.
@@ -103,11 +110,3 @@ scripts/                           Validacion y generacion de SQL
 - [Actualizacion a .NET 10](MIGRACION-NET10.md)
 
 No se aplican migraciones automaticamente al iniciar la API. Un workflow configurado o una imagen Docker definida no equivalen a un despliegue validado.
-
-## Demo interactiva
-
-[Probar RentaEquipos](https://nicolas-giron-rentaequipos-demo.nicogiron09.chatgpt.site/)
-
-Explorá equipos, disponibilidad, reservas, retiros y devoluciones.
-Utiliza datos ficticios y permite restablecer los datos iniciales.
-
