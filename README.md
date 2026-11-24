@@ -4,10 +4,16 @@ Sistema de alquiler de herramientas y equipos. El backend se organiza en la solu
 
 ## Demo interactiva
 
-[Probar RentaEquipos](https://nicolas-giron-rentaequipos-demo.nicogiron09.chatgpt.site/)
-
 Explorá equipos, disponibilidad, reservas, retiros y devoluciones.
 Utiliza datos ficticios y permite restablecer los datos iniciales.
+
+[Probar RentaEquipos](https://nicolas-giron-rentaequipos-demo.nicogiron09.chatgpt.site/)
+
+## Capturas de la aplicación
+
+![Resumen de operaciones de RentaEquipos en modo demo, con disponibilidad y agenda de alquileres](AlquilerEquipos/frontend/docs/resumen-demo.png)
+
+Vista del frontend en modo demostración, con datos ficticios.
 
 ## Estado del proyecto
 
