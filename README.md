@@ -104,4 +104,10 @@ scripts/                           Validacion y generacion de SQL
 
 No se aplican migraciones automaticamente al iniciar la API. Un workflow configurado o una imagen Docker definida no equivalen a un despliegue validado.
 
+## Demo interactiva
+
+[Probar RentaEquipos](https://nicolas-giron-rentaequipos-demo.nicogiron09.chatgpt.site/)
+
+Explorá equipos, disponibilidad, reservas, retiros y devoluciones.
+Utiliza datos ficticios y permite restablecer los datos iniciales.
 
